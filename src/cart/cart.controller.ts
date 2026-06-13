@@ -74,7 +74,7 @@ export class CartController {
 
     const { id: cartId, items } = cart;
     const total = calculateCartTotal(items);
-    const order = await this.orderService.create({
+    const order = await this.cartService.checkout({
       userId,
       cartId,
       items: items.map(({ product, count }) => ({
@@ -84,7 +84,6 @@ export class CartController {
       address: body.address,
       total,
     });
-    await this.cartService.updateStatusByUserId(userId, CartStatuses.ORDERED);
 
     return {
       order,

@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { CartEntity } from '../entities/cart.entity';
 import { CartItemEntity } from '../entities/cart-item.entity';
 import { Cart, CartStatuses } from '../models';
 import { PutCartPayload } from 'src/order/type';
+import { OrderEntity } from 'src/order/entities/order.entity';
+import { CreateOrderPayload, OrderStatus } from 'src/order/type';
 
 @Injectable()
 export class CartService {
@@ -13,10 +15,13 @@ export class CartService {
     private cartRepo: Repository<CartEntity>,
     @InjectRepository(CartItemEntity)
     private cartItemRepo: Repository<CartItemEntity>,
+    private dataSource: DataSource,
   ) {}
 
   async findByUserId(userId: string): Promise<Cart> {
-    const entity = await this.cartRepo.findOne({ where: { user_id: userId } });
+    const entity = await this.cartRepo.findOne({
+      where: { user_id: userId, status: CartStatuses.OPEN },
+    });
     return entity ? this.toCart(entity) : null;
   }
 
@@ -79,6 +84,27 @@ export class CartService {
     status: CartStatuses,
   ): Promise<void> {
     await this.cartRepo.update({ user_id: userId }, { status });
+  }
+
+  async checkout(data: CreateOrderPayload): Promise<OrderEntity> {
+    return this.dataSource.transaction(async (manager) => {
+      const order = manager.create(OrderEntity, {
+        user_id: data.userId,
+        cart_id: data.cartId,
+        delivery: data.address as unknown as object,
+        payment: null,
+        comments: null,
+        status: OrderStatus.Open,
+        total: data.total,
+      });
+      const savedOrder = await manager.save(OrderEntity, order);
+      await manager.update(
+        CartEntity,
+        { user_id: data.userId },
+        { status: CartStatuses.ORDERED },
+      );
+      return savedOrder;
+    });
   }
 
   private toCart(entity: CartEntity): Cart {
