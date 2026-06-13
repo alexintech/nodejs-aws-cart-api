@@ -28,3 +28,16 @@ CREATE TABLE IF NOT EXISTS orders (
   status     order_status NOT NULL DEFAULT 'ORDERED',
   total      integer NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS users (
+  id       uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name     text NOT NULL UNIQUE,
+  password text NOT NULL,
+  email    text
+);
+
+ALTER TABLE orders
+    ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id);
+ALTER TABLE carts
+    ADD CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id);
+
