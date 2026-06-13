@@ -11,11 +11,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { BasicAuthGuard } from '../auth';
-import { Order, OrderService } from '../order';
+import { OrderService } from '../order';
+import { OrderEntity } from '../order/entities/order.entity';
 import { AppRequest, getUserIdFromRequest } from '../shared';
 import { calculateCartTotal } from './models-rules';
 import { CartService } from './services';
-import { CartItem } from './models';
+import { CartItem, CartStatuses } from './models';
 import { CreateOrderDto, PutCartPayload } from 'src/order/type';
 
 @Controller('api/profile/cart')
@@ -73,7 +74,7 @@ export class CartController {
 
     const { id: cartId, items } = cart;
     const total = calculateCartTotal(items);
-    const order = this.orderService.create({
+    const order = await this.orderService.create({
       userId,
       cartId,
       items: items.map(({ product, count }) => ({
@@ -83,7 +84,7 @@ export class CartController {
       address: body.address,
       total,
     });
-    await this.cartService.removeByUserId(userId);
+    await this.cartService.updateStatusByUserId(userId, CartStatuses.ORDERED);
 
     return {
       order,
@@ -92,7 +93,7 @@ export class CartController {
 
   @UseGuards(BasicAuthGuard)
   @Get('order')
-  getOrder(): Order[] {
+  getOrder(): Promise<OrderEntity[]> {
     return this.orderService.getAll();
   }
 }

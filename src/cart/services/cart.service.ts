@@ -74,6 +74,13 @@ export class CartService {
     }
   }
 
+  async updateStatusByUserId(
+    userId: string,
+    status: CartStatuses,
+  ): Promise<void> {
+    await this.cartRepo.update({ user_id: userId }, { status });
+  }
+
   private toCart(entity: CartEntity): Cart {
     return {
       id: entity.id,
