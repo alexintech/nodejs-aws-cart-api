@@ -1,50 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
-import { Order } from '../models';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { OrderEntity } from '../entities/order.entity';
 import { CreateOrderPayload, OrderStatus } from '../type';
 
 @Injectable()
 export class OrderService {
-  private orders: Record<string, Order> = {};
+  constructor(
+    @InjectRepository(OrderEntity)
+    private orderRepo: Repository<OrderEntity>,
+  ) {}
 
-  getAll() {
-    return Object.values(this.orders);
+  getAll(): Promise<OrderEntity[]> {
+    return this.orderRepo.find();
   }
 
-  findById(orderId: string): Order {
-    return this.orders[orderId];
+  findById(orderId: string): Promise<OrderEntity> {
+    return this.orderRepo.findOne({ where: { id: orderId } });
   }
 
-  create(data: CreateOrderPayload) {
-    const id = randomUUID() as string;
-    const order: Order = {
-      id,
-      ...data,
-      statusHistory: [
-        {
-          comment: '',
-          status: OrderStatus.Open,
-          timestamp: Date.now(),
-        },
-      ],
-    };
-
-    this.orders[id] = order;
-
-    return order;
+  create(data: CreateOrderPayload): Promise<OrderEntity> {
+    const entity = this.orderRepo.create({
+      user_id: data.userId,
+      cart_id: data.cartId,
+      payment: null,
+      delivery: data.address as unknown as object,
+      comments: null,
+      status: OrderStatus.Open,
+      total: data.total,
+    });
+    return this.orderRepo.save(entity);
   }
 
-  // TODO add  type
-  update(orderId: string, data: Order) {
-    const order = this.findById(orderId);
-
+  async update(orderId: string, data: Partial<OrderEntity>): Promise<void> {
+    const order = await this.findById(orderId);
     if (!order) {
       throw new Error('Order does not exist.');
     }
-
-    this.orders[orderId] = {
-      ...data,
-      id: orderId,
-    };
+    await this.orderRepo.save({ ...order, ...data, id: orderId });
   }
 }
