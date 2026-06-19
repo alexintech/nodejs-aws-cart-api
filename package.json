@@ -19,7 +19,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "build:lambda": "nest build --webpack --webpackPath webpack.config.js",
+    "build:minimal": "nest build --webpack --webpackPath webpack.config.js",
     "cdk:diff": "npm run build:lambda && cd cdk/cart-service && cdk diff",
     "cdk:deploy": "npm run build:lambda && cd cdk/cart-service && cdk deploy"
   },
